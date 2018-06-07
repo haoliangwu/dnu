@@ -4,12 +4,14 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc -p ./tsconfig.build.json"
   },
   "precommit": [
     "test"
   ],
   "jest": {
+    "roots": ["<rootDir>/test"],
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },

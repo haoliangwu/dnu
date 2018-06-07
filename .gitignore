@@ -67,3 +67,6 @@ typings/
 .serverless
 
 tmp
+lib
+chunks
+assets

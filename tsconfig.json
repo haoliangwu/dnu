@@ -1,4 +1,11 @@
 {
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "test/**/*"
+  ],
   "compilerOptions": {
     /* Basic Options */
     "target": "es5", /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017','ES2018' or 'ESNEXT'. */
@@ -7,8 +14,7 @@
     "outDir": "./lib", /* Redirect output structure to the directory. */
     "baseUrl": "./",
     "rootDirs": [
-      "./src",
-      "./test"
+      "./src"
     ], /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
     /* Strict Type-Checking Options */
     "strict": true, /* Enable all strict type-checking options. */
