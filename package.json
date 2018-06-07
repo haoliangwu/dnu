@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "precommit-msg": "echo 'Pre-commit checks...' && exit 0"
+  },
+  "precommit": [
+    "precommit-msg",
+    "test"
+  ],
   "jest": {
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
@@ -30,6 +38,7 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "jest": "^23.1.0",
+    "pre-commit": "^1.2.2",
     "regenerator-runtime": "^0.11.1",
     "rmfr": "^2.0.0",
     "superagent": "^3.8.3",
