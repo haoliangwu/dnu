@@ -4,11 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "jest",
-    "precommit-msg": "echo 'Pre-commit checks...' && exit 0"
+    "test": "jest"
   },
   "precommit": [
-    "precommit-msg",
     "test"
   ],
   "jest": {

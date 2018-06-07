@@ -21,7 +21,7 @@ describe('test the express router', () => {
 
   afterAll(() => {
     rmfr(path.resolve(__dirname, '../', chunksFolder))
-    rmfr(path.resolve(__dirname, '..', assetsFolder))
+    rmfr(path.resolve(__dirname, '../', assetsFolder))
   })
 
   test('server should startup succesfully', () => {
