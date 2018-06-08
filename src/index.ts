@@ -1,8 +1,8 @@
 export interface ChunkMeta {
   cur: number
   total: number
-  done: boolean
   filename: string
+  done: boolean
 }
 
 export abstract class DnuStore<M = ChunkMeta> {

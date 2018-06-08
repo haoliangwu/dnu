@@ -9,7 +9,9 @@
   "license": "MIT",
   "scripts": {
     "test": "jest -i",
-    "build": "tsc -p ./tsconfig.build.json -d"
+    "build": "yarn build:server && yarn build:client",
+    "build:server": "tsc -p ./tsconfig.server.json -d",
+    "build:client": "tsc -p ./tsconfig.client.json -d"
   },
   "precommit": [
     "test"
@@ -39,11 +41,13 @@
     "@types/from2": "^2.3.0",
     "@types/jest": "^23.0.0",
     "@types/node": "^10.3.1",
+    "@types/node-fetch": "^2.1.1",
     "@types/rmfr": "^2.0.0",
     "@types/supertest": "^2.0.4",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "jest": "^23.1.0",
+    "node-fetch": "^2.1.2",
     "pre-commit": "^1.2.2",
     "regenerator-runtime": "^0.11.1",
     "rmfr": "^2.0.0",
