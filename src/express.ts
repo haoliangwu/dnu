@@ -6,15 +6,16 @@ import { RequestHandler, Router, RouterOptions, Request } from 'express'
 import bodyparser, { json } from 'body-parser'
 import from2 from 'from2'
 
-import store from '@/memoryStore'
-import { ChunkMeta } from '@/index'
+import { ChunkMeta, DnuStore } from '@/index'
 import { validateChunks, concatChunks, clearChunks, initFolders } from '@/utils'
 import { isUndefined } from 'util'
+import MemoryStore from './store/memory'
 
 const DEFAULT_TEMP_FOLDER = 'tmp'
 
 // typing
 export interface DnuRouterOptions {
+  store: DnuStore<any>
   chunksFolder?: string
   assetsFolder?: string
 }
@@ -36,34 +37,39 @@ const requiredFieldsGuardFactory: (fields: string[]) => RequestHandler = (fields
   }
 }
 
-const chunkMetaGuard: RequestHandler = function (req: DnuRequest, res, next) {
-  const uuid = req.params.uuid || req.body.uuid
+const chunkMetaGuard: (store: DnuStore<any>) => RequestHandler = (store) => {
+  return function (req: DnuRequest, res, next) {
+    const uuid = req.params.uuid || req.body.uuid
 
-  if (!store.exist(uuid)) {
-    return res.status(404).json({ uuid, err: 'unexist' })
+    if (!store.exist(uuid)) {
+      return res.status(404).json({ uuid, err: 'unexist' })
+    }
+
+    Promise.resolve(store.get(uuid))
+      .then(meta => {
+        if (!store.isChunkMeta(meta)) {
+          return res.status(409).json({ uuid, err: 'conflict' })
+        }
+
+        req.meta = meta
+
+        next()
+      })
   }
-
-  const meta = store.get(uuid)
-
-  if (!store.isChunkMeta(meta)) {
-    return res.status(409).json({ uuid, err: 'conflict' })
-  }
-
-  req.meta = meta
-
-  next()
 }
 
 // router factory
 export default function routerFactory (options?: DnuRouterOptions & RouterOptions) {
   let _chunksFolder = DEFAULT_TEMP_FOLDER
   let _assetsFolder = DEFAULT_TEMP_FOLDER
+  let _store: DnuStore<any> = new MemoryStore()
 
   if (options) {
-    const { chunksFolder, assetsFolder } = options
+    const { chunksFolder, assetsFolder, store } = options
 
     _chunksFolder = chunksFolder || _chunksFolder
     _assetsFolder = assetsFolder || _assetsFolder
+    _store = store || _store
   }
 
   initFolders([_chunksFolder, _assetsFolder])
@@ -77,16 +83,11 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
   })
 
   // 查询文件当前上传状态
-  router.get('/status/:uuid', chunkMetaGuard, (req, res, next) => {
+  router.get('/status/:uuid', chunkMetaGuard(_store), (req: DnuRequest, res, next) => {
     const { uuid } = req.params
+    const meta = req.meta as ChunkMeta
 
-    if (!store.exist(uuid)) {
-      return res.status(404).json({ uuid, err: 'unexist' })
-    }
-
-    const meta = store.get(uuid)
-
-    if (!store.isChunkMeta(meta)) {
+    if (!_store.isChunkMeta(meta)) {
       return res.status(409).json({ uuid, err: 'conflict' })
     }
 
@@ -100,21 +101,18 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
   router.post('/upload_start', requiredFieldsGuardFactory(['uuid', 'total', 'filename']), (req, res, next) => {
     const { uuid, total, filename } = req.body
 
-    store.set(uuid, {
-      cur: 0,
-      total,
-      done: false,
-      filename
-    })
-
-    res.status(201).json({
-      uuid,
-      status: 'start',
-      target: `${req.baseUrl}/upload/${uuid}/0`
+    Promise.resolve(_store.set(uuid, {
+      cur: 0, total, done: false, filename
+    })).then(() => {
+      res.status(201).json({
+        uuid,
+        status: 'start',
+        target: `${req.baseUrl}/upload/${uuid}/0`
+      })
     })
   })
 
-  router.post('/upload/:uuid/:idx', chunkMetaGuard, bodyparser.raw(), (req: DnuRequest, res, next) => {
+  router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), bodyparser.raw(), (req: DnuRequest, res, next) => {
     const { uuid, idx } = req.params
     const meta = req.meta as ChunkMeta
     const _idx = Number.parseInt(idx)
@@ -174,16 +172,17 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
 
       if (meta.cur >= meta.total) {
         meta.done = true
-        store.set(uuid, meta)
-
-        return res.json({ uuid, status: 'done' })
+        Promise.resolve(_store.set(uuid, meta))
+          .then(() => {
+            return res.json({ uuid, status: 'done' })
+          })
       } else {
         return res.status(202).json({ uuid, status: 'pending', target: `${req.baseUrl}/upload/${uuid}/${meta.cur}` })
       }
     }
   })
 
-  router.post('/upload_end', requiredFieldsGuardFactory(['uuid']), chunkMetaGuard, (req: DnuRequest, res, next) => {
+  router.post('/upload_end', requiredFieldsGuardFactory(['uuid']), chunkMetaGuard(_store), (req: DnuRequest, res, next) => {
     const { uuid } = req.body
     const meta = req.meta as ChunkMeta
 
@@ -205,14 +204,20 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
       })
   })
 
-  router.post('/upload_abort', requiredFieldsGuardFactory(['uuid']), chunkMetaGuard, (req: DnuRequest, res, next) => {
+  router.post('/upload_abort', requiredFieldsGuardFactory(['uuid']), chunkMetaGuard(_store), (req: DnuRequest, res, next) => {
     const { uuid } = req.body
     const meta = req.meta as ChunkMeta
 
-    store.delete(uuid)
-    clearChunks(uuid, meta, _chunksFolder)
+    Promise.resolve(_store.delete(uuid))
+      .then(success => {
+        if (success) {
+          clearChunks(uuid, meta, _chunksFolder)
 
-    return res.json({ uuid, msg: 'aborted' })
+          return res.json({ uuid, msg: 'aborted' })
+        } else {
+          return res.json({ uuid, msg: 'failed' })
+        }
+      })
   })
 
   return router

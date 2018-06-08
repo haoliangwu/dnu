@@ -5,16 +5,18 @@ import request from 'supertest'
 import rmfr from 'rmfr'
 
 import app from './express'
-import { expressRouter } from '@/index'
+import expressRouter from '@/express'
+import MemoryStore from '@/store/memory'
 
 describe('test the express router', () => {
   let agent: request.SuperTest<request.Test>
   const assetsFolder = 'assets'
   const chunksFolder = 'chunks'
+  const store = new MemoryStore()
 
   beforeAll(() => {
     app.use('/dnu', expressRouter({
-      assetsFolder, chunksFolder
+      store, assetsFolder, chunksFolder
     }))
     agent = request(app)
   })
