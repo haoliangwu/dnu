@@ -125,12 +125,12 @@ describe('test the async store', () => {
 
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
 
-    // await agent.post('/dnu/upload_end').send({ uuid })
+    await agent.post('/dnu/upload_end').send({ uuid })
 
-    // expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-0`))).toBe(false)
-    // expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-1`))).toBe(false)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(false)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(false)
 
-    // expect(fs.existsSync(path.resolve(__dirname, `../${assetsFolder}/${filename}`))).toBe(true)
-    // expect(fs.readFileSync(path.resolve(__dirname, `../${assetsFolder}/${filename}`)).toString()).toBe('chunk0chunk1')
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
+    expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe('chunk0chunk1')
   })
 })
