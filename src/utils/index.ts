@@ -1,14 +1,17 @@
 import fs from 'fs'
 import path from 'path'
-import StreamsConcat from 'stream-concat'
-import { ChunkMeta } from '../index'
 import { Transform } from 'stream'
+
+import StreamsConcat from 'stream-concat'
+import mkdirp from 'mkdirp'
+
+import { ChunkMeta } from '../index'
 
 export function initFolders (folders: string[] = []): void {
   folders.forEach(folder => {
     fs.exists(folder, (exists) => {
       if (exists) return
-      else fs.mkdirSync(folder)
+      else mkdirp.sync(folder)
     })
   })
 }

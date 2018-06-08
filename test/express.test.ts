@@ -10,20 +10,18 @@ import MemoryStore from '@/store/memory'
 
 describe('test the express router', () => {
   let agent: request.SuperTest<request.Test>
-  const assetsFolder = 'assets'
-  const chunksFolder = 'chunks'
+  const tmpFolder = 'tmp/express'
   const store = new MemoryStore()
 
   beforeAll(() => {
     app.use('/dnu', expressRouter({
-      store, assetsFolder, chunksFolder
+      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
     }))
     agent = request(app)
   })
 
   afterAll(() => {
-    rmfr(path.resolve(__dirname, '../', chunksFolder))
-    rmfr(path.resolve(__dirname, '../', assetsFolder))
+    rmfr(path.resolve(__dirname, '../', tmpFolder))
   })
 
   test('server should startup succesfully', () => {
@@ -124,14 +122,14 @@ describe('test the express router', () => {
       .send('chunk0')
       .expect(202, { uuid, status: 'pending', target: `/dnu/upload/${uuid}/1` })
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-0`))).toBe(true)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(true)
 
     await agent.post(`/dnu/upload/${uuid}/1`)
       .set('Content-Type', 'application/octet-stream')
       .send('chunk1')
       .expect(200, { uuid, status: 'done' })
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-1`))).toBe(true)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
   })
 
   test('/upload_end should concat related ${chunksFolder} to the whole asset', async () => {
@@ -145,21 +143,21 @@ describe('test the express router', () => {
       .set('Content-Type', 'application/octet-stream')
       .send('chunk0')
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-0`))).toBe(true)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(true)
 
     await agent.post(`/dnu/upload/${uuid}/1`)
       .set('Content-Type', 'application/octet-stream')
       .send('chunk1')
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-1`))).toBe(true)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
 
     await agent.post('/dnu/upload_end').send({ uuid })
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-0`))).toBe(false)
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-1`))).toBe(false)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(false)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(false)
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${assetsFolder}/${filename}`))).toBe(true)
-    expect(fs.readFileSync(path.resolve(__dirname, `../${assetsFolder}/${filename}`)).toString()).toBe('chunk0chunk1')
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
+    expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe('chunk0chunk1')
   })
 
   test('/upload_abort should abort existed upload task', async () => {
@@ -174,11 +172,11 @@ describe('test the express router', () => {
       .send('chunk0')
       .expect(202, { uuid, status: 'pending', target: `/dnu/upload/${uuid}/1` })
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-0`))).toBe(true)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(true)
 
     await agent.post('/dnu/upload_abort').send({ uuid })
       .expect(200, { uuid, msg: 'aborted' })
 
-    expect(fs.existsSync(path.resolve(__dirname, `../${chunksFolder}/${uuid}-0`))).toBe(false)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(false)
   })
 })

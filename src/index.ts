@@ -5,9 +5,9 @@ export interface ChunkMeta {
   filename: string
 }
 
-export abstract class DnuStore<S, M = ChunkMeta> {
+export abstract class DnuStore<M = ChunkMeta> {
   abstract get (uuid: string): M | undefined | PromiseLike<M | undefined>
-  abstract set (uuid: string, meta: M): S
+  abstract set (uuid: string, meta: M): any
   abstract delete (uuid: string): boolean | PromiseLike<boolean>
   abstract exist (uuid: string): boolean | PromiseLike<boolean>
 

@@ -1,6 +1,6 @@
 import { ChunkMeta, DnuStore } from '@/index'
 
-export default class MemoryStore extends DnuStore<Map<string, ChunkMeta>> {
+export default class MemoryStore extends DnuStore {
   private store: Map<string, ChunkMeta>
 
   constructor (

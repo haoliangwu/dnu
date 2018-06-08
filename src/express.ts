@@ -168,17 +168,21 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
     }
 
     function updateChunkMeta (meta: ChunkMeta) {
+      let response = {}
+
       meta.cur++
 
       if (meta.cur >= meta.total) {
         meta.done = true
-        Promise.resolve(_store.set(uuid, meta))
-          .then(() => {
-            return res.json({ uuid, status: 'done' })
-          })
+        response = { uuid, status: 'done' }
       } else {
-        return res.status(202).json({ uuid, status: 'pending', target: `${req.baseUrl}/upload/${uuid}/${meta.cur}` })
+        res.status(202)
+        response = { uuid, status: 'pending', target: `${req.baseUrl}/upload/${uuid}/${meta.cur}` }
       }
+
+      return Promise.resolve(_store.set(uuid, meta)).then(() => {
+        res.json(response)
+      })
     }
   })
 
