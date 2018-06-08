@@ -4,18 +4,19 @@ import path from 'path'
 import request from 'supertest'
 import rmfr from 'rmfr'
 import fetch from 'node-fetch'
+import express from 'express'
 
 import expressRouter from '@/express'
 import MemoryStore from '@/store/memory'
 import DnuClient, { DnuClientOptions } from '@/client'
 
-import app from './express'
 import { Server } from 'http'
 
 describe('test the dnu client', () => {
   let agent: request.SuperTest<request.Test>
   const tmpFolder = 'tmp/client'
   const store = new MemoryStore()
+  const app = express()
   const defaultClientOptions: DnuClientOptions = {
     prefix: '/api',
     host: 'http://127.0.0.1:3000'

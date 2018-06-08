@@ -3,8 +3,8 @@ import path from 'path'
 
 import request from 'supertest'
 import rmfr from 'rmfr'
+import express from 'express'
 
-import app from './express'
 import expressRouter from '@/express'
 import MemoryStore from '@/store/memory'
 
@@ -12,8 +12,12 @@ describe('test the express router', () => {
   let agent: request.SuperTest<request.Test>
   const tmpFolder = 'tmp/express'
   const store = new MemoryStore()
+  const app = express()
 
   beforeAll(() => {
+    app.get('/', (req, res) => {
+      res.status(200).send('Hello World!')
+    })
     app.use('/dnu', expressRouter({
       store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
     }))

@@ -3,8 +3,8 @@ import path from 'path'
 
 import request from 'supertest'
 import rmfr from 'rmfr'
+import express from 'express'
 
-import app from './express'
 import expressRouter from '@/express'
 import JsonStore from '@/store/json'
 
@@ -21,6 +21,7 @@ describe('test the async store', () => {
     }
   }
   const store = new JsonStore(jsonStorePath, 'store.json', initConfig)
+  const app = express()
 
   beforeAll(() => {
     app.use('/dnu', expressRouter({
