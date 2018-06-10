@@ -110,8 +110,12 @@ describe('test the express router', () => {
     await agent.post(`/dnu/upload/${uuid}/number`)
       .expect(400, { uuid, err: 'invalid idx' })
 
-    await agent.post(`/dnu/upload/${uuid}/1`)
-      .expect(400, { uuid, err: 'invalid idx' })
+    await agent.post(`/dnu/upload/${uuid}/0`)
+    await agent.post(`/dnu/upload/${uuid}/0`)
+      .expect(400, { uuid, err: 'duplicated' })
+
+    await agent.post(`/dnu/upload/${uuid}/2`)
+      .expect(400, { uuid, err: 'inaccessible' })
   })
 
   test('/upload/:uuid/:idx should upload chunk successfully', async () => {

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { Transform } from 'stream'
+import { isUndefined } from 'util'
 
 import { RequestHandler, Router, RouterOptions, Request } from 'express'
 import bodyparser, { json } from 'body-parser'
@@ -8,8 +9,7 @@ import from2 from 'from2'
 
 import { ChunkMeta, DnuStore } from '@/index'
 import { validateChunks, concatChunks, clearChunks, initFolders } from '@/utils'
-import { isUndefined } from 'util'
-import MemoryStore from './store/memory'
+import MemoryStore from '@/store/memory'
 
 const DEFAULT_TEMP_FOLDER = 'tmp'
 const DEFAULT_CHECK_SIZE = 1024 * 1024 * 10
@@ -91,10 +91,6 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
     const { uuid } = req.params
     const meta = req.meta as ChunkMeta
 
-    if (!_store.isChunkMeta(meta)) {
-      return res.status(409).json({ uuid, err: 'conflict' })
-    }
-
     if (meta.done) {
       return res.json({ uuid, status: 'done' })
     } else {
@@ -123,8 +119,6 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
     const meta = req.meta as ChunkMeta
     const _idx = Number.parseInt(idx)
 
-    // TODO 校验 idx 块是否为冗余块
-
     // TODO 暂时只支持 顺序 上传
     if (Number.isNaN(_idx)) {
       return res.status(400).json({
@@ -139,9 +133,12 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
     }
 
     if (_idx !== meta.cur) {
-      return res.status(400).json({
-        uuid, err: 'invalid idx'
-      })
+      res.status(400)
+      if (_idx < meta.cur) {
+        return res.json({ uuid, err: 'duplicated' })
+      } else {
+        return res.json({ uuid, err: 'inaccessible' })
+      }
     }
 
     if (meta.done) {
