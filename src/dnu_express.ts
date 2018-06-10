@@ -12,10 +12,12 @@ import { isUndefined } from 'util'
 import MemoryStore from './store/memory'
 
 const DEFAULT_TEMP_FOLDER = 'tmp'
+const DEFAULT_CHECK_SIZE = 1024 * 1024 * 10
 
 // typing
 export interface DnuRouterOptions {
   store?: DnuStore<any>
+  chunkSize?: number
   chunksFolder?: string
   assetsFolder?: string
 }
@@ -62,12 +64,14 @@ const chunkMetaGuard: (store: DnuStore<any>) => RequestHandler = (store) => {
 export default function routerFactory (options?: DnuRouterOptions & RouterOptions) {
   let _chunksFolder = DEFAULT_TEMP_FOLDER
   let _assetsFolder = DEFAULT_TEMP_FOLDER
+  let _chunkSize = DEFAULT_CHECK_SIZE
   let _store: DnuStore<any> = new MemoryStore()
 
   if (options) {
-    const { chunksFolder, assetsFolder, store } = options
+    const { chunksFolder, assetsFolder, store, chunkSize } = options
 
     _chunksFolder = chunksFolder || _chunksFolder
+    _chunkSize = chunkSize || _chunkSize
     _assetsFolder = assetsFolder || _assetsFolder
     _store = store || _store
   }
@@ -112,7 +116,9 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
     })
   })
 
-  router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), bodyparser.raw(), (req: DnuRequest, res, next) => {
+  router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), bodyparser.raw({
+    limit: _chunkSize
+  }), (req: DnuRequest, res, next) => {
     const { uuid, idx } = req.params
     const meta = req.meta as ChunkMeta
     const _idx = Number.parseInt(idx)
