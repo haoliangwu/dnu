@@ -15,7 +15,7 @@ const DEFAULT_TEMP_FOLDER = 'tmp'
 
 // typing
 export interface DnuRouterOptions {
-  store: DnuStore<any>
+  store?: DnuStore<any>
   chunksFolder?: string
   assetsFolder?: string
 }
