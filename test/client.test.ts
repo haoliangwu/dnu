@@ -6,7 +6,7 @@ import rmfr from 'rmfr'
 import fetch from 'node-fetch'
 import express from 'express'
 
-import expressRouter from '@/express'
+import expressRouter from '@/dnu_express'
 import MemoryStore from '@/store/memory'
 import DnuClient, { DnuClientOptions } from '@/client'
 

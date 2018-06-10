@@ -5,7 +5,7 @@ import request from 'supertest'
 import rmfr from 'rmfr'
 import express from 'express'
 
-import expressRouter from '@/express'
+import expressRouter from '@/dnu_express'
 import MemoryStore from '@/store/memory'
 
 describe('test the express router', () => {

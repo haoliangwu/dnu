@@ -16,6 +16,6 @@ export abstract class DnuStore<M = ChunkMeta> {
   }
 }
 
-export { default as expressRouter } from './express'
+export { default as expressRouter } from './dnu_express'
 
-export * from './express'
+export * from './dnu_express'

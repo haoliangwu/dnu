@@ -9,8 +9,9 @@
   "license": "MIT",
   "scripts": {
     "test": "jest -i",
+    "prebuild": "rm -rf lib",
     "build": "yarn build:server && yarn build:client",
-    "build:server": "tsc -p ./tsconfig.server.json -d",
+    "build:server": "tsc -p ./tsconfig.server.json -d && ./node_modules/.bin/babel lib --out-dir lib",
     "build:client": "tsc -p ./tsconfig.client.json -d"
   },
   "precommit": [
@@ -44,6 +45,9 @@
     "@types/node-fetch": "^2.1.1",
     "@types/rmfr": "^2.0.0",
     "@types/supertest": "^2.0.4",
+    "babel": "^6.23.0",
+    "babel-cli": "^6.26.0",
+    "babel-plugin-module-resolver": "^3.1.1",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "jest": "^23.1.0",
