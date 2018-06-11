@@ -57,7 +57,7 @@ describe('test the express router', () => {
 
     await agent.post('/dnu/upload_start').send({ uuid, total, filename })
 
-    const secondRes = await agent.get(`/dnu/status/${uuid}`)
+    await agent.get(`/dnu/status/${uuid}`)
       .expect(302, { uuid, status: 'pending' })
   })
 

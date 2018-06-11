@@ -62,14 +62,6 @@ const chunkMetaGuard: (store: DnuStore<any>) => IMiddleware = (store) => {
   }
 }
 
-const rawBodyParser: (options: rawBody.Options) => IMiddleware = options => {
-  return async function (ctx: DnuKoaContext, next) {
-    const raw = await rawBody(ctx.req, options)
-    console.log(ctx.body, ctx.status)
-    await next()
-  }
-}
-
 export default function routerFactory (options?: DnuRouterOptions & IRouterOptions) {
   let _chunksFolder = DEFAULT_TEMP_FOLDER
   let _assetsFolder = DEFAULT_TEMP_FOLDER
@@ -157,18 +149,16 @@ export default function routerFactory (options?: DnuRouterOptions & IRouterOptio
       ctx.body = { uuid, status: 'done' }
       return
     } else {
-      const raw = await rawBody(ctx.req, {
+      let raw = await rawBody(ctx.req, {
         limit: _chunkSize
       })
 
       if (Buffer.isBuffer(raw)) {
-        let buffer = raw as Buffer
-
         const rs = from2((size, next) => {
-          if (buffer.byteLength <= 0) return next(null, null)
+          if (raw.byteLength <= 0) return next(null, null)
 
-          const chunk = buffer.slice(0, size)
-          buffer = buffer.slice(size)
+          const chunk = raw.slice(0, size)
+          raw = raw.slice(size)
 
           next(null, chunk)
         })

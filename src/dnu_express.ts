@@ -3,7 +3,7 @@ import path from 'path'
 import { isUndefined } from 'util'
 
 import { RequestHandler, Router, RouterOptions, Request } from 'express'
-import bodyparser, { json } from 'body-parser'
+import bodyparser from 'body-parser'
 import from2 from 'from2'
 
 import { ChunkMeta, DnuStore, DnuRouterOptions } from '@/index'
@@ -135,7 +135,7 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
       return res.json({ uuid, status: 'done' })
     } else {
       if (Buffer.isBuffer(req.body)) {
-        let buffer = req.body as Buffer
+        let buffer = req.body
 
         const rs = from2((size, next) => {
           if (buffer.byteLength <= 0) return next(null, null)

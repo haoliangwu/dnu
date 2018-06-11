@@ -9,9 +9,10 @@
   "license": "MIT",
   "scripts": {
     "test": "jest -i",
+    "lint": "yarn tslint -c ./tslint.json -p . -t codeFrame",
     "prebuild": "rm -rf lib",
     "build": "yarn build:server && yarn build:client",
-    "build:server": "tsc -p ./tsconfig.server.json -d && ./node_modules/.bin/babel lib --out-dir lib",
+    "build:server": "tsc -p ./tsconfig.server.json -d && yarn babel lib --out-dir lib",
     "build:client": "tsc -p ./tsconfig.client.json -d"
   },
   "precommit": [

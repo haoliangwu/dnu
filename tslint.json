@@ -1,9 +1,12 @@
 {
-    "defaultSeverity": "error",
+    "defaultSeverity": "warning",
     "extends": [
         "tslint-config-standard"
     ],
     "jsRules": {},
-    "rules": {},
+    "rules": {
+        "no-floating-promises": false,
+        "await-promise": false
+    },
     "rulesDirectory": []
 }

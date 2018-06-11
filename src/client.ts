@@ -30,7 +30,7 @@ export default class DnuClient {
   }
 
   constructor (
-    private options: DnuClientOptions
+    private options: DnuClientOptions // tslint:disable-line:no-unused-variable
   ) {
     this.chunkSize = options.chunkSize || 1024 * 1024 * 5
     this.fetch = options.fetch || fetch
@@ -85,7 +85,7 @@ export default class DnuClient {
   }
 
   private chunk (target: string, ab: ArrayBuffer): any | Promise<any> {
-    const { cur, total } = this.meta
+    const { cur } = this.meta
     const chunk = this.sliceChunk(cur, ab)
 
     return this.fetch(`${this.host}${target}`, {

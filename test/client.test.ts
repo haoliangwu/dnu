@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 
-import request from 'supertest'
 import rmfr from 'rmfr'
 import fetch from 'node-fetch'
 import express from 'express'
@@ -13,7 +12,6 @@ import DnuClient, { DnuClientOptions } from '@/client'
 import { Server } from 'http'
 
 describe('test the dnu client', () => {
-  let agent: request.SuperTest<request.Test>
   const tmpFolder = 'tmp/client'
   const store = new MemoryStore()
   const app = express()
@@ -33,7 +31,6 @@ describe('test the dnu client', () => {
       store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
     }))
     server = app.listen(3000)
-    agent = request(app)
   })
 
   afterAll(() => {
