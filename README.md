@@ -23,4 +23,8 @@ Simple multipart *d*ownloading a*n*d *u*ploading suites.
 
 ## How to use
 
-Let me explain..
+Refer to ``/examples``
+
+## Development
+
+Refer to ``maidfile.md`` or use ``maid help``
