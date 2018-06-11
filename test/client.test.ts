@@ -84,19 +84,51 @@ describe('test the dnu client', () => {
   test('should secondPass hook called when creating duplicated task', async () => {
     const filename = 'foo.txt'
     const content = 'chunk0chunk1chunk2!!'
+    const spy = jest.fn()
     const client = new DnuClient({
       chunkSize: 6,
       fetch,
       uuid: () => 'foo',
-      onSecondPass: function (uuid: any) {
-        expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}.txt`))).toBe(true)
-        expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}.txt`)).toString()).toBe(content)
-      },
+      onChunkUploaded: spy,
       ...defaultClientOptions
     })
     const buffer = new Buffer(content)
 
     await client.upload(filename, toArrayBuffer(buffer))
+
+    expect(spy).toHaveBeenCalledTimes(0)
+  })
+
+  test('should lifecycle hooks have been called with correct times', async () => {
+    const filename = 'bar.txt'
+    const content = 'chunk0chunk1chunk2!!'
+    const spyStart = jest.fn()
+    const spyUploaded = jest.fn()
+    const spySuccess = jest.fn()
+    const spyEnd = jest.fn()
+    const client = new DnuClient({
+      chunkSize: 6,
+      fetch,
+      onStart: (meta: any) => {
+        spyStart()
+        expect(meta).toEqual({ cur: 0, filename: 'bar.txt', total: 4 })
+      },
+      onChunkUploaded: spyUploaded,
+      onSuccess: (meta: any) => {
+        spySuccess()
+        expect(meta).toEqual({ cur: 4, filename: 'bar.txt', total: 4 })
+      },
+      onEnd: spyEnd,
+      ...defaultClientOptions
+    })
+    const buffer = new Buffer(content)
+
+    await client.upload(filename, toArrayBuffer(buffer))
+
+    expect(spyStart).toHaveBeenCalledTimes(1)
+    expect(spyUploaded).toHaveBeenCalledTimes(4)
+    expect(spySuccess).toHaveBeenCalledTimes(1)
+    expect(spyEnd).toHaveBeenCalledTimes(1)
   })
 })
 

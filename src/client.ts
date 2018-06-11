@@ -15,8 +15,14 @@ export interface DnuClientOptions {
   uuid?: () => string,
   host?: string
   prefix?: string
-  // hooks
+  // event hooks
   onSecondPass?: Function
+  onChunkUploaded?: Function
+  // lifecycle hooks
+  onStart?: Function
+  onSuccess?: Function
+  onEnd?: Function
+  onError?: Function
 }
 
 export default class DnuClient {
@@ -26,6 +32,11 @@ export default class DnuClient {
   private prefix: string
   private fetch: typeof fetch
   private onSecondPass: Function
+  private onChunkUploaded: Function
+  private onStart: Function
+  private onSuccess: Function
+  private onEnd: Function
+  private onError: Function
 
   private uploading = false
   private meta = {
@@ -43,9 +54,14 @@ export default class DnuClient {
     this.host = options.host || 'http://127.0.0.1:3000'
     this.prefix = options.prefix || 'dnu'
     this.onSecondPass = options.onSecondPass || noop
+    this.onChunkUploaded = options.onChunkUploaded || noop
+    this.onStart = options.onStart || noop
+    this.onSuccess = options.onSuccess || noop
+    this.onEnd = options.onEnd || noop
+    this.onError = options.onError || noop
   }
 
-  upload (filename: string, ab: ArrayBuffer) {
+  upload (filename: string, ab: ArrayBuffer, override: boolean = false) {
     if (this.uploading) throw new Error('only one uploading task support')
 
     this.uploading = true
@@ -55,18 +71,23 @@ export default class DnuClient {
     this.meta.filename = filename
     this.meta.total = this.countChunks(ab)
 
-    return this.start(uuid)
+    const startPromise = override ? this.reset(uuid).then(res => this.start(uuid)) : this.start(uuid)
+
+    return startPromise
       .then(res => {
         if (res.status === 'exist') {
           // 当前资源已存在上传副本
-          console.info('current asset existed on server-side')
           this.onSecondPass(res.uuid)
+          this.onEnd()
         } else {
           return this.chunk(res.target, ab).then(() => this.end(uuid))
         }
       })
       .catch(err => {
-        if (err) console.error(err)
+        if (err) {
+          this.onError(err)
+          this.onEnd(err)
+        }
         this.uploading = false
       })
   }
@@ -77,6 +98,20 @@ export default class DnuClient {
 
   sliceChunk (cur: number, ab: ArrayBuffer): ArrayBuffer {
     return ab.slice(cur * this.chunkSize, (cur + 1) * this.chunkSize)
+  }
+
+  private reset (uuid: string): Promise<any> {
+    const payload = {
+      uuid
+    }
+
+    return this.fetch(`${this.host}${this.prefix}/upload_abort`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    }).then(res => res.json())
   }
 
   private start (uuid: string): Promise<any> {
@@ -94,7 +129,11 @@ export default class DnuClient {
         'content-type': 'application/json'
       },
       body: JSON.stringify(payload)
-    }).then(res => res.json())
+    }).then(res => {
+      this.onStart(this.meta)
+
+      return res.json()
+    })
   }
 
   private chunk (target: string, ab: ArrayBuffer): any | Promise<any> {
@@ -109,10 +148,13 @@ export default class DnuClient {
       body: chunk
     }).then(res => res.json())
       .then(res => {
+        this.onChunkUploaded(this.meta)
+
+        this.meta.cur++
+
         if (res.status === 'done') {
           return res
         } else if (res.status === 'pending') {
-          this.meta.cur++
           return this.chunk(res.target, ab)
         }
       })
@@ -129,6 +171,10 @@ export default class DnuClient {
       body: JSON.stringify(payload)
     }).then(res => {
       this.uploading = false
+      this.onSuccess(this.meta)
+      this.onEnd()
+
+      return res.json()
     })
   }
 }

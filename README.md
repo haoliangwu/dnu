@@ -7,7 +7,7 @@ Simple multipart *d*ownloading a*n*d *u*ploading suites.
   * [x] koa
 * [x] client library
   * [x] base impl
-  * [ ] uoloading lifecycle hooks
+  * [x] uoloading lifecycle hooks
 * [x] unit-tests
   * [x] express-middleware
   * [x] koa-middleware 
