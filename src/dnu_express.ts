@@ -1,27 +1,17 @@
 import fs from 'fs'
 import path from 'path'
-import { Transform } from 'stream'
 import { isUndefined } from 'util'
 
 import { RequestHandler, Router, RouterOptions, Request } from 'express'
 import bodyparser, { json } from 'body-parser'
 import from2 from 'from2'
 
-import { ChunkMeta, DnuStore } from '@/index'
+import { ChunkMeta, DnuStore, DnuRouterOptions } from '@/index'
 import { validateChunks, concatChunks, clearChunks, initFolders } from '@/utils'
 import MemoryStore from '@/store/memory'
+import { DEFAULT_TEMP_FOLDER, DEFAULT_CHECK_SIZE } from '@/constants'
 
-const DEFAULT_TEMP_FOLDER = 'tmp'
-const DEFAULT_CHECK_SIZE = 1024 * 1024 * 10
-
-// typing
-export interface DnuRouterOptions {
-  store?: DnuStore<any>
-  chunkSize?: number
-  chunksFolder?: string
-  assetsFolder?: string
-}
-
+// typings
 interface DnuRequest extends Request {
   meta?: ChunkMeta
 }
@@ -78,7 +68,7 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
 
   initFolders([_chunksFolder, _assetsFolder])
 
-  const router: Router = Router()
+  const router: Router = Router(options)
 
   router.use(bodyparser.json())
 
@@ -144,7 +134,6 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
     if (meta.done) {
       return res.json({ uuid, status: 'done' })
     } else {
-      // TODO 储存分片
       if (Buffer.isBuffer(req.body)) {
         let buffer = req.body as Buffer
 

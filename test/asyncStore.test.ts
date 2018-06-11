@@ -4,12 +4,13 @@ import path from 'path'
 import request from 'supertest'
 import rmfr from 'rmfr'
 import express from 'express'
+import Koa from 'koa'
 
+import koaRouter from '@/dnu_koa'
 import expressRouter from '@/dnu_express'
 import JsonStore from '@/store/json'
 
 describe('test the async store', () => {
-  let agent: request.SuperTest<request.Test>
   const tmpFolder = 'tmp/async'
   const jsonStorePath = path.resolve(__dirname, '..', tmpFolder)
   const initConfig = {
@@ -21,14 +22,6 @@ describe('test the async store', () => {
     }
   }
   const store = new JsonStore(jsonStorePath, 'store.json', initConfig)
-  const app = express()
-
-  beforeAll(() => {
-    app.use('/dnu', expressRouter({
-      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
-    }))
-    agent = request(app)
-  })
 
   afterAll(() => {
     rmfr(path.resolve(__dirname, '../', tmpFolder))
@@ -106,10 +99,16 @@ describe('test the async store', () => {
     expect(isExisted2).toBe(false)
   })
 
-  test('should work fine during the whole upload process', async () => {
+  test('should work fine during the whole upload process(express)', async () => {
     const uuid = 'tob'
     const total = 2
     const filename = 'tob.txt'
+
+    const app = express()
+    app.use('/dnu', expressRouter({
+      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
+    }))
+    const agent = request(app)
 
     await agent.post('/dnu/upload_start').send({ uuid, total, filename })
 
@@ -133,5 +132,44 @@ describe('test the async store', () => {
 
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
     expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe('chunk0chunk1')
+  })
+
+  test('should work fine during the whole upload process(koa)', async () => {
+    const uuid = 'tob'
+    const total = 2
+    const filename = 'tob.txt'
+
+    const app = new Koa()
+    app.use(koaRouter({
+      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder,
+      prefix: '/dnu'
+    }))
+    const koaServer = app.listen()
+    const agent = request(koaServer)
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+
+    await agent.post(`/dnu/upload/${uuid}/0`)
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk0')
+
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(true)
+
+    await agent.post(`/dnu/upload/${uuid}/1`)
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk1')
+      .expect(200)
+
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
+
+    await agent.post('/dnu/upload_end').send({ uuid })
+
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(false)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(false)
+
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
+    expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe('chunk0chunk1')
+
+    koaServer.close()
   })
 })

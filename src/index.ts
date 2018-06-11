@@ -16,6 +16,13 @@ export abstract class DnuStore<M = ChunkMeta> {
   }
 }
 
+export interface DnuRouterOptions {
+  store?: DnuStore<any>
+  chunkSize?: number
+  chunksFolder?: string
+  assetsFolder?: string
+}
+
 export { default as expressRouter } from './dnu_express'
 
 export * from './dnu_express'
