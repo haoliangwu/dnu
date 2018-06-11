@@ -7,12 +7,16 @@ function guid (): string {
   return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4()
 }
 
+function noop () { } // tslint:disable-line:no-empty
+
 export interface DnuClientOptions {
   chunkSize?: number
   fetch?: any,
   uuid?: () => string,
   host?: string
   prefix?: string
+  // hooks
+  onSecondPass?: Function
 }
 
 export default class DnuClient {
@@ -21,6 +25,7 @@ export default class DnuClient {
   private host: string
   private prefix: string
   private fetch: typeof fetch
+  private onSecondPass: Function
 
   private uploading = false
   private meta = {
@@ -37,6 +42,7 @@ export default class DnuClient {
     this.uuid = options.uuid || guid
     this.host = options.host || 'http://127.0.0.1:3000'
     this.prefix = options.prefix || 'dnu'
+    this.onSecondPass = options.onSecondPass || noop
   }
 
   upload (filename: string, ab: ArrayBuffer) {
@@ -50,8 +56,15 @@ export default class DnuClient {
     this.meta.total = this.countChunks(ab)
 
     return this.start(uuid)
-      .then(res => this.chunk(res.target, ab))
-      .then(res => this.end(uuid))
+      .then(res => {
+        if (res.status === 'exist') {
+          // 当前资源已存在上传副本
+          console.info('current asset existed on server-side')
+          this.onSecondPass(res.uuid)
+        } else {
+          return this.chunk(res.target, ab).then(() => this.end(uuid))
+        }
+      })
       .catch(err => {
         if (err) console.error(err)
         this.uploading = false

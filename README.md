@@ -6,6 +6,8 @@ Simple multipart *d*ownloading a*n*d *u*ploading suites.
   * [x] express
   * [x] koa
 * [x] client library
+  * [x] base impl
+  * [ ] uoloading lifecycle hooks
 * [x] unit-tests
   * [x] express-middleware
   * [x] koa-middleware 
@@ -14,7 +16,7 @@ Simple multipart *d*ownloading a*n*d *u*ploading suites.
 * [ ] uploading
   * [x] serial uploading
   * [ ] parallel uploading
-  * [ ] second pass
+  * [x] second pass
 * [ ] downloading
   * [ ] break-point resume
 * [ ] examples

@@ -28,7 +28,10 @@ describe('test the dnu client', () => {
 
   beforeAll(() => {
     app.use('/api', expressRouter({
-      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
+      store,
+      assetsFolder: tmpFolder,
+      chunksFolder: tmpFolder,
+      secondPass: true
     }))
     server = app.listen(3000)
   })
@@ -67,6 +70,7 @@ describe('test the dnu client', () => {
     const client = new DnuClient({
       chunkSize: 6,
       fetch,
+      uuid: () => 'foo',
       ...defaultClientOptions
     })
     const buffer = new Buffer(content)
@@ -75,6 +79,24 @@ describe('test the dnu client', () => {
 
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
     expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe(content)
+  })
+
+  test('should secondPass hook called when creating duplicated task', async () => {
+    const filename = 'foo.txt'
+    const content = 'chunk0chunk1chunk2!!'
+    const client = new DnuClient({
+      chunkSize: 6,
+      fetch,
+      uuid: () => 'foo',
+      onSecondPass: function (uuid: any) {
+        expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}.txt`))).toBe(true)
+        expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}.txt`)).toString()).toBe(content)
+      },
+      ...defaultClientOptions
+    })
+    const buffer = new Buffer(content)
+
+    await client.upload(filename, toArrayBuffer(buffer))
   })
 })
 

@@ -68,15 +68,17 @@ export default function routerFactory (options?: DnuRouterOptions & IRouterOptio
   let _chunkSize = DEFAULT_CHECK_SIZE
   let _store: DnuStore<any> = new MemoryStore()
   let _prefix = DEFAULT_ROUTE_PREFIX
+  let _secondPass = false
 
   if (options) {
-    const { chunksFolder, assetsFolder, store, chunkSize, prefix } = options
+    const { chunksFolder, assetsFolder, store, chunkSize, prefix, secondPass } = options
 
     _chunksFolder = chunksFolder || _chunksFolder
     _chunkSize = chunkSize || _chunkSize
     _assetsFolder = assetsFolder || _assetsFolder
     _store = store || _store
     _prefix = prefix || _prefix
+    _secondPass = !!secondPass
   }
 
   initFolders([_chunksFolder, _assetsFolder])
@@ -104,6 +106,16 @@ export default function routerFactory (options?: DnuRouterOptions & IRouterOptio
 
   router.post('/upload_start', requiredFieldsGuardFactory(['uuid', 'total', 'filename']), async (ctx: DnuKoaContext, next) => {
     const { uuid, total, filename } = ctx.request.body
+
+    if (_secondPass) {
+      const meta = await _store.get(uuid)
+
+      if (meta && meta.done) {
+        ctx.status = 302
+        ctx.body = { uuid, status: 'exist' }
+        return
+      }
+    }
 
     await _store.set(uuid, {
       cur: 0, total, done: false, filename

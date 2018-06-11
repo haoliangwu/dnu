@@ -56,14 +56,16 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
   let _assetsFolder = DEFAULT_TEMP_FOLDER
   let _chunkSize = DEFAULT_CHECK_SIZE
   let _store: DnuStore<any> = new MemoryStore()
+  let _secondPass = false
 
   if (options) {
-    const { chunksFolder, assetsFolder, store, chunkSize } = options
+    const { chunksFolder, assetsFolder, store, chunkSize, secondPass } = options
 
     _chunksFolder = chunksFolder || _chunksFolder
     _chunkSize = chunkSize || _chunkSize
     _assetsFolder = assetsFolder || _assetsFolder
     _store = store || _store
+    _secondPass = !!secondPass
   }
 
   initFolders([_chunksFolder, _assetsFolder])
@@ -90,16 +92,30 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
 
   router.post('/upload_start', requiredFieldsGuardFactory(['uuid', 'total', 'filename']), (req, res, next) => {
     const { uuid, total, filename } = req.body
-
-    Promise.resolve(_store.set(uuid, {
-      cur: 0, total, done: false, filename
-    })).then(() => {
-      res.status(201).json({
-        uuid,
-        status: 'start',
-        target: `${req.baseUrl}/upload/${uuid}/0`
+    const createUploadTask = () => {
+      Promise.resolve(_store.set(uuid, {
+        cur: 0, total, done: false, filename
+      })).then(() => {
+        res.status(201).json({
+          uuid,
+          status: 'start',
+          target: `${req.baseUrl}/upload/${uuid}/0`
+        })
       })
-    })
+    }
+
+    if (_secondPass) {
+      Promise.resolve(_store.get(uuid))
+        .then((meta: ChunkMeta) => {
+          if (meta && meta.done) {
+            res.status(302).json({ uuid, status: 'exist' })
+          } else {
+            createUploadTask()
+          }
+        })
+    } else {
+      createUploadTask()
+    }
   })
 
   router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), bodyparser.raw({

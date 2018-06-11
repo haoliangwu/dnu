@@ -19,7 +19,10 @@ describe('test the express router', () => {
       res.status(200).send('Hello World!')
     })
     app.use('/dnu', expressRouter({
-      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder
+      store,
+      assetsFolder: tmpFolder,
+      chunksFolder: tmpFolder,
+      secondPass: true
     }))
     agent = request(app)
   })
@@ -70,15 +73,28 @@ describe('test the express router', () => {
       .expect(201, { uuid, status: 'start', target: '/dnu/upload/foo/0' })
   })
 
+  test('/upload_start should pass on exist upload task', async () => {
+    const uuid = 'joy'
+    const total = 1
+    const filename = 'joy.txt'
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+
+    await agent.post(`/dnu/upload/${uuid}/0`)
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk0')
+      .expect(200, { uuid, status: 'done' })
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+      .expect(302, { uuid, status: 'exist' })
+  })
+
   test('/upload/:uuid/:idx should return next target', async () => {
     const uuid = 'baz'
     const total = 10
     const filename = 'baz.txt'
 
     await agent.post('/dnu/upload_start').send({ uuid, total, filename })
-
-    return agent.post(`/dnu/upload/${uuid}/0`)
-      .expect(202, { uuid, status: 'pending', target: `/dnu/upload/${uuid}/1` })
   })
 
   test('/upload/:uuid/:idx should return done status when task has done', async () => {

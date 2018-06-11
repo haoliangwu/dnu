@@ -21,8 +21,9 @@ export interface DnuRouterOptions {
   chunkSize?: number
   chunksFolder?: string
   assetsFolder?: string
+  secondPass?: boolean
 }
 
 export { default as expressRouter } from './dnu_express'
 
-export * from './dnu_express'
+export { default as koaRouter } from './dnu_koa'

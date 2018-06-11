@@ -17,8 +17,11 @@ describe('test the express router', () => {
 
   beforeAll(() => {
     app.use(koaRouter({
-      store, assetsFolder: tmpFolder, chunksFolder: tmpFolder,
-      prefix: '/dnu'
+      store,
+      assetsFolder: tmpFolder,
+      chunksFolder: tmpFolder,
+      prefix: '/dnu',
+      secondPass: true
     }))
     agent = request(koaServer)
   })
@@ -64,6 +67,22 @@ describe('test the express router', () => {
 
     return agent.post('/dnu/upload_start').send({ uuid, total, filename })
       .expect(201, { uuid, status: 'start', target: '/dnu/upload/foo/0' })
+  })
+
+  test('/upload_start should pass on exist upload task', async () => {
+    const uuid = 'joy'
+    const total = 1
+    const filename = 'joy.txt'
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+
+    await agent.post(`/dnu/upload/${uuid}/0`)
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk0')
+      .expect(200, { uuid, status: 'done' })
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+      .expect(302, { uuid, status: 'exist' })
   })
 
   test('/upload/:uuid/:idx should return next target', async () => {
