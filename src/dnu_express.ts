@@ -92,30 +92,31 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
 
   router.post('/upload_start', requiredFieldsGuardFactory(['uuid', 'total', 'filename']), (req, res, next) => {
     const { uuid, total, filename } = req.body
-    const createUploadTask = () => {
+    const createUploadTask = (cur: number = 0) => {
       Promise.resolve(_store.set(uuid, {
-        cur: 0, total, done: false, filename
+        cur, total, done: false, filename
       })).then(() => {
         res.status(201).json({
           uuid,
           status: 'start',
-          target: `${req.baseUrl}/upload/${uuid}/0`
+          target: `${req.baseUrl}/upload/${uuid}/${cur}`
         })
       })
     }
 
-    if (_secondPass) {
-      Promise.resolve(_store.get(uuid))
-        .then((meta: ChunkMeta) => {
-          if (meta && meta.done) {
-            res.status(302).json({ uuid, status: 'exist' })
-          } else {
-            createUploadTask()
-          }
-        })
-    } else {
-      createUploadTask()
-    }
+    Promise.resolve(_store.get(uuid))
+      .then((meta: ChunkMeta) => {
+        // 如果存在元数据则检测是否符合秒传条件
+        if (meta) {
+          // 如果开启秒传同时符合条件 则直接返回 302
+          if (_secondPass && meta.done) res.status(302).json({ uuid, status: 'exist' })
+          // 根据元数据创建上传任务
+          else createUploadTask(meta.cur)
+          // 创建全新的上传任务
+        } else {
+          createUploadTask()
+        }
+      })
   })
 
   router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), bodyparser.raw({

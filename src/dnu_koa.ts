@@ -106,26 +106,31 @@ export default function routerFactory (options?: DnuRouterOptions & IRouterOptio
 
   router.post('/upload_start', requiredFieldsGuardFactory(['uuid', 'total', 'filename']), async (ctx: DnuKoaContext, next) => {
     const { uuid, total, filename } = ctx.request.body
+    const createUploadTask = async (cur: number = 0) => {
+      await _store.set(uuid, {
+        cur, total, done: false, filename
+      })
 
-    if (_secondPass) {
-      const meta = await _store.get(uuid)
-
-      if (meta && meta.done) {
-        ctx.status = 302
-        ctx.body = { uuid, status: 'exist' }
-        return
+      ctx.status = 201
+      ctx.body = {
+        uuid,
+        status: 'start',
+        target: `${_prefix}/upload/${uuid}/${cur}`
       }
     }
 
-    await _store.set(uuid, {
-      cur: 0, total, done: false, filename
-    })
+    const meta: ChunkMeta = await _store.get(uuid)
 
-    ctx.status = 201
-    ctx.body = {
-      uuid,
-      status: 'start',
-      target: `${_prefix}/upload/${uuid}/0`
+    if (meta) {
+      if (_secondPass && meta.done) {
+        ctx.status = 302
+        ctx.body = { uuid, status: 'exist' }
+        return
+      } else {
+        await createUploadTask(meta.cur)
+      }
+    } else {
+      await createUploadTask()
     }
   })
 

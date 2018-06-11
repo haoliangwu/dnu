@@ -73,7 +73,26 @@ describe('test the express router', () => {
       .expect(201, { uuid, status: 'start', target: '/dnu/upload/foo/0' })
   })
 
-  test('/upload_start should pass on exist upload task', async () => {
+  test('/upload_start should resume the pending uploading task', async () => {
+    const uuid = 'foo'
+    const total = 10
+    const filename = 'foo.txt'
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+
+    await agent.post(`/dnu/upload/${uuid}/0`)
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk0')
+
+    await agent.post(`/dnu/upload/${uuid}/1`)
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk1')
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+      .expect(201, { uuid, status: 'start', target: `/dnu/upload/${uuid}/2` })
+  })
+
+  test('/upload_start should bypass the done uploading task', async () => {
     const uuid = 'joy'
     const total = 1
     const filename = 'joy.txt'
@@ -89,12 +108,15 @@ describe('test the express router', () => {
       .expect(302, { uuid, status: 'exist' })
   })
 
-  test('/upload/:uuid/:idx should return next target', async () => {
+  test('/upload/:uuid/:idx should return correct next target', async () => {
     const uuid = 'baz'
     const total = 10
     const filename = 'baz.txt'
 
     await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+
+    return agent.post(`/dnu/upload/${uuid}/0`)
+      .expect(202, { uuid, status: 'pending', target: `/dnu/upload/${uuid}/1` })
   })
 
   test('/upload/:uuid/:idx should return done status when task has done', async () => {

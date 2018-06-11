@@ -135,9 +135,9 @@ describe('test the async store', () => {
   })
 
   test('should work fine during the whole upload process(koa)', async () => {
-    const uuid = 'tob'
+    const uuid = 'tod'
     const total = 2
-    const filename = 'tob.txt'
+    const filename = 'tod.txt'
 
     const app = new Koa()
     app.use(koaRouter({
