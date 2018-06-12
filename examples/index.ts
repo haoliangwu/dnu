@@ -7,7 +7,7 @@ const client = new DnuClient({
   chunkSize: 1024 * 1024 * 1,
   prefix: '/dnu',
   fetch: window.fetch.bind(window),
-  host: 'http://127.0.0.1:3000'
+  host: 'http://127.0.0.1:3001'
 })
 
 let uploadMeta = {

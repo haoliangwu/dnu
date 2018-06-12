@@ -14,7 +14,8 @@
     "build": "yarn build:server && yarn build:client",
     "build:server": "tsc -p ./tsconfig.server.json -d && yarn babel lib --out-dir lib",
     "build:client": "tsc -p ./tsconfig.client.json -d && yarn parcel build lib/client.js -d ./lib -o client.bundle.js",
-    "build:example": "yarn parcel build examples/index.html"
+    "prebuild:example": "rm -rf examples/dist",
+    "build:example": "yarn parcel build examples/index.html -d ./examples/dist"
   },
   "precommit": [
     "test"

@@ -14,6 +14,6 @@ app.get('/', (req, res, next) => {
   res.sendFile(path.resolve(__dirname, 'dist/index.html'))
 })
 
-app.listen(3000, () => {
-  console.log('server listen at 127:0.0.1:3000.')
+app.listen(3001, () => {
+  console.log('server listen at 127:0.0.1:3001.')
 })
