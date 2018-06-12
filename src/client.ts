@@ -1,3 +1,5 @@
+import TaskQueue from './utils/taskQueue'
+
 function guid (): string {
   function s4 () {
     return Math.floor((1 + Math.random()) * 0x10000)
@@ -25,6 +27,16 @@ export interface DnuClientOptions {
   onError?: Function
 }
 
+export interface UploadOptions {
+  override?: boolean
+  concurrency?: number
+}
+
+const DEFAULT_UPLOAD_OPTIONS: UploadOptions = {
+  override: false,
+  concurrency: 1
+}
+
 export default class DnuClient {
   private chunkSize: number
   private uuid: () => string
@@ -45,6 +57,10 @@ export default class DnuClient {
     total: 0
   }
 
+  get baseUrl () {
+    return `${this.host}${this.prefix}`
+  }
+
   constructor (
     private options: DnuClientOptions // tslint:disable-line:no-unused-variable
   ) {
@@ -61,8 +77,10 @@ export default class DnuClient {
     this.onError = options.onError || noop
   }
 
-  upload (filename: string, ab: ArrayBuffer, override: boolean = false) {
+  upload (filename: string, ab: ArrayBuffer, options: UploadOptions = DEFAULT_UPLOAD_OPTIONS) {
     if (this.uploading) throw new Error('only one uploading task support')
+
+    const { override, concurrency } = options
 
     this.uploading = true
 
@@ -80,7 +98,15 @@ export default class DnuClient {
           this.onSecondPass(res.uuid)
           this.onEnd()
         } else {
-          return this.chunk(res.target, ab).then(() => this.end(uuid))
+          let chunkDeffer: Promise<any>
+
+          if (typeof concurrency === 'number' && concurrency > 1) {
+            chunkDeffer = this.chunkParellel(uuid, ab, concurrency)
+          } else {
+            chunkDeffer = this.chunkSerial(res.target, ab)
+          }
+
+          return chunkDeffer.then(() => this.end(uuid))
         }
       })
       .catch(err => {
@@ -105,7 +131,7 @@ export default class DnuClient {
       uuid
     }
 
-    return this.fetch(`${this.host}${this.prefix}/upload_abort`, {
+    return this.fetch(`${this.baseUrl}/upload_abort`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json'
@@ -123,7 +149,7 @@ export default class DnuClient {
       filename: this.meta.filename
     }
 
-    return this.fetch(`${this.host}${this.prefix}/upload_start`, {
+    return this.fetch(`${this.baseUrl}/upload_start`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json'
@@ -136,7 +162,32 @@ export default class DnuClient {
     })
   }
 
-  private chunk (target: string, ab: ArrayBuffer): any | Promise<any> {
+  private chunkParellel (uuid: string, ab: ArrayBuffer, concurrency: number = 5): any | Promise<any> {
+    return new Promise((resolve, reject) => {
+      const taskQueue = new TaskQueue(concurrency, () => {
+        resolve()
+      })
+
+      for (let cur = 0; cur < this.meta.total; cur++) {
+        const chunk = this.sliceChunk(cur, ab)
+        const promise = this.fetch(`${this.baseUrl}/upload/${uuid}/${cur}?mode=parellel`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/octet-stream'
+          },
+          body: chunk
+        }).then(res => {
+          this.onChunkUploaded(this.meta)
+          this.meta.cur++
+          return res.json()
+        })
+
+        taskQueue.push(promise)
+      }
+    })
+  }
+
+  private chunkSerial (target: string, ab: ArrayBuffer): any | Promise<any> {
     const { cur } = this.meta
     const chunk = this.sliceChunk(cur, ab)
 
@@ -155,7 +206,7 @@ export default class DnuClient {
         if (res.status === 'done') {
           return res
         } else if (res.status === 'pending') {
-          return this.chunk(res.target, ab)
+          return this.chunkSerial(res.target, ab)
         }
       })
   }

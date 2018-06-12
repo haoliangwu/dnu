@@ -64,7 +64,7 @@ describe('test the dnu client', () => {
     expect(toBuffer(client.sliceChunk(2, toArrayBuffer(buffer1)))).toBe('e')
   })
 
-  test('should upload file by multiple chunks', async () => {
+  test('should upload file in serial mode', async () => {
     const filename = 'foo.txt'
     const content = 'chunk0chunk1chunk2!!'
     const client = new DnuClient({
@@ -80,7 +80,6 @@ describe('test the dnu client', () => {
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
     expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe(content)
   })
-
   test('should secondPass hook called when creating duplicated task', async () => {
     const filename = 'foo.txt'
     const content = 'chunk0chunk1chunk2!!'
@@ -129,6 +128,25 @@ describe('test the dnu client', () => {
     expect(spyUploaded).toHaveBeenCalledTimes(4)
     expect(spySuccess).toHaveBeenCalledTimes(1)
     expect(spyEnd).toHaveBeenCalledTimes(1)
+  })
+
+  test('should upload file in parellel mode', async () => {
+    const filename = 'baz.txt'
+    const content = 'chunk0chunk1chunk2!!'
+    const client = new DnuClient({
+      chunkSize: 6,
+      fetch,
+      uuid: () => 'baz',
+      ...defaultClientOptions
+    })
+    const buffer = new Buffer(content)
+
+    await client.upload(filename, toArrayBuffer(buffer), {
+      concurrency: 2
+    })
+
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`))).toBe(true)
+    expect(fs.readFileSync(path.resolve(__dirname, `../${tmpFolder}/${filename}`)).toString()).toBe(content)
   })
 })
 

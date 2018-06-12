@@ -185,7 +185,7 @@ describe('test the express router', () => {
 
     await agent.post('/dnu/upload_start').send({ uuid, total, filename })
 
-    const p1 = agent.post(`/dnu/upload/${uuid}/0`)
+    const p1 = agent.post(`/dnu/upload/${uuid}/2`)
       .query({ mode: 'parellel' })
       .set('Content-Type', 'application/octet-stream')
       .send('chunk0')
@@ -193,11 +193,16 @@ describe('test the express router', () => {
       .query({ mode: 'parellel' })
       .set('Content-Type', 'application/octet-stream')
       .send('chunk1')
+    const p3 = agent.post(`/dnu/upload/${uuid}/0`)
+      .query({ mode: 'parellel' })
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk2')
 
-    await Promise.all([p1, p2])
+    await Promise.all([p1, p2, p3])
 
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(true)
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-2`))).toBe(true)
   })
 
   test('/upload_end should concat related ${chunksFolder} to the whole asset', async () => {
