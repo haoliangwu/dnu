@@ -6,6 +6,13 @@ Compile server and client code
 yarn build
 ```
 
+## build:example
+
+Build example demo directory
+```bash
+yarn build:example
+```
+
 ## test
 
 Run all unit-test testcases

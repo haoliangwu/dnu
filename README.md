@@ -13,9 +13,9 @@ Simple multipart *d*ownloading a*n*d *u*ploading suites.
   * [x] koa-middleware 
   * [x] sync/async store
   * [x] client
-* [ ] uploading
+* [x] uploading
   * [x] serial uploading
-  * [ ] parallel uploading
+  * [x] parallel uploading
   * [x] second pass
 * [ ] downloading
   * [ ] break-point resume

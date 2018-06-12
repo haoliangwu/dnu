@@ -98,7 +98,7 @@ const chunkIdxGuard: () => RequestHandler = () => {
 }
 
 // router factory
-export default function routerFactory (options?: DnuRouterOptions & RouterOptions) {
+export default function routerFactory (options: DnuRouterOptions & RouterOptions = {}) {
   let _chunksFolder = DEFAULT_TEMP_FOLDER
   let _assetsFolder = DEFAULT_TEMP_FOLDER
   let _chunkSize = DEFAULT_CHECK_SIZE
@@ -231,14 +231,16 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
       return res.status(400).json({ uuid, err: 'incomplete' })
     }
 
+    const targetPath = path.resolve(_assetsFolder, meta.filename)
     const rs = concatChunks(uuid, meta, _chunksFolder)
-    const ws = fs.createWriteStream(path.resolve(_assetsFolder, meta.filename))
+    const ws = fs.createWriteStream(targetPath)
 
     rs.pipe(ws)
       .on('error', err => {
         if (err) return res.status(500).json({ uuid, err })
       })
       .on('finish', () => {
+        options.onUploaded && options.onUploaded(targetPath)
         clearChunks(uuid, meta, _chunksFolder)
         return res.json({ uuid, msg: 'complete' })
       })

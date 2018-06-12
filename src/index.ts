@@ -23,6 +23,7 @@ export interface DnuRouterOptions {
   chunksFolder?: string
   assetsFolder?: string
   secondPass?: boolean
+  onUploaded?: Function
 }
 
 export { default as expressRouter } from './dnu_express'

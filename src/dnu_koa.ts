@@ -114,7 +114,7 @@ const chunkIdxGuard: () => IMiddleware = () => {
   }
 }
 
-export default function routerFactory (options?: DnuRouterOptions & IRouterOptions) {
+export default function routerFactory (options: DnuRouterOptions & IRouterOptions = {}) {
   let _chunksFolder = DEFAULT_TEMP_FOLDER
   let _assetsFolder = DEFAULT_TEMP_FOLDER
   let _chunkSize = DEFAULT_CHECK_SIZE
@@ -257,8 +257,9 @@ export default function routerFactory (options?: DnuRouterOptions & IRouterOptio
       return
     }
 
+    const targetPath = path.resolve(_assetsFolder, meta.filename)
     const rs = concatChunks(uuid, meta, _chunksFolder)
-    const ws = fs.createWriteStream(path.resolve(_assetsFolder, meta.filename))
+    const ws = fs.createWriteStream(targetPath)
 
     await new Promise((resolve, reject) => {
       rs.pipe(ws)
@@ -270,6 +271,7 @@ export default function routerFactory (options?: DnuRouterOptions & IRouterOptio
         }
       })
       .on('finish', () => {
+        options.onUploaded && options.onUploaded(targetPath)
         clearChunks(uuid, meta, _chunksFolder)
         ctx.body = { uuid, msg: 'complete' }
         resolve()
