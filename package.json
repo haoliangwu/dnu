@@ -13,7 +13,8 @@
     "prebuild": "rm -rf lib",
     "build": "yarn build:server && yarn build:client",
     "build:server": "tsc -p ./tsconfig.server.json -d && yarn babel lib --out-dir lib",
-    "build:client": "tsc -p ./tsconfig.client.json -d"
+    "build:client": "tsc -p ./tsconfig.client.json -d && yarn parcel build lib/client.js -d ./lib -o client.bundle.js",
+    "build:example": "yarn parcel build examples/index.html"
   },
   "precommit": [
     "test"
@@ -58,6 +59,7 @@
     "jest": "^23.1.0",
     "koa": "^2.5.1",
     "node-fetch": "^2.1.2",
+    "parcel": "^1.8.1",
     "pre-commit": "^1.2.2",
     "regenerator-runtime": "^0.11.1",
     "rmfr": "^2.0.0",
