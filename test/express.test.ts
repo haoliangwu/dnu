@@ -156,7 +156,7 @@ describe('test the express router', () => {
       .expect(400, { uuid, err: 'inaccessible' })
   })
 
-  test('/upload/:uuid/:idx should upload chunk successfully', async () => {
+  test('/upload/:uuid/:idx should upload chunk successfully (serial)', async () => {
     const uuid = 'pot'
     const total = 2
     const filename = 'pot.txt'
@@ -175,6 +175,28 @@ describe('test the express router', () => {
       .send('chunk1')
       .expect(200, { uuid, status: 'done' })
 
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
+  })
+
+  test('/upload/:uuid/:idx should upload chunk successfully (parellel)', async () => {
+    const uuid = 'pog'
+    const total = 2
+    const filename = 'pot.txt'
+
+    await agent.post('/dnu/upload_start').send({ uuid, total, filename })
+
+    const p1 = agent.post(`/dnu/upload/${uuid}/0`)
+      .query({ mode: 'parellel' })
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk0')
+    const p2 = agent.post(`/dnu/upload/${uuid}/1`)
+      .query({ mode: 'parellel' })
+      .set('Content-Type', 'application/octet-stream')
+      .send('chunk1')
+
+    await Promise.all([p1, p2])
+
+    expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-0`))).toBe(true)
     expect(fs.existsSync(path.resolve(__dirname, `../${tmpFolder}/${uuid}-1`))).toBe(true)
   })
 

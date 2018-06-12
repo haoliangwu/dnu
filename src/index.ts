@@ -3,6 +3,7 @@ export interface ChunkMeta {
   total: number
   filename: string
   done: boolean
+  serial?: boolean
 }
 
 export abstract class DnuStore<M = ChunkMeta> {

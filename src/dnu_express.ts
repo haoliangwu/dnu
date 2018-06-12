@@ -50,6 +50,53 @@ const chunkMetaGuard: (store: DnuStore<any>) => RequestHandler = (store) => {
   }
 }
 
+const chunkIdxGuard: () => RequestHandler = () => {
+  return function (req: DnuRequest, res, next) {
+    const { uuid, idx } = req.params
+    const meta = req.meta as ChunkMeta
+    const _idx = Number.parseInt(idx)
+    const mode = req.query.mode || 'serial'
+
+    if (Number.isNaN(_idx)) {
+      return res.status(400).json({
+        uuid, err: 'invalid idx'
+      })
+    }
+
+    if (_idx > meta.total || _idx < 0) {
+      return res.status(400).json({
+        uuid, err: 'idx out-range'
+      })
+    }
+
+    switch (mode) {
+      case 'serial':
+        if (_idx !== meta.cur) {
+          res.status(400)
+          if (_idx < meta.cur) {
+            return res.json({ uuid, err: 'duplicated' })
+          } else {
+            return res.json({ uuid, err: 'inaccessible' })
+          }
+        }
+        meta.serial = true
+        break
+      case 'parellel':
+        if (meta.cur > meta.total) {
+          return res.status(400).json({ uuid, err: 'beyond max limit times' })
+        }
+        meta.serial = false
+        break
+      default:
+        return res.status(400).json({ uuid, err: 'unsupport mode' })
+    }
+
+    req.meta = meta
+
+    next()
+  }
+}
+
 // router factory
 export default function routerFactory (options?: DnuRouterOptions & RouterOptions) {
   let _chunksFolder = DEFAULT_TEMP_FOLDER
@@ -119,34 +166,11 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
       })
   })
 
-  router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), bodyparser.raw({
+  router.post('/upload/:uuid/:idx', chunkMetaGuard(_store), chunkIdxGuard(), bodyparser.raw({
     limit: _chunkSize
   }), (req: DnuRequest, res, next) => {
     const { uuid, idx } = req.params
     const meta = req.meta as ChunkMeta
-    const _idx = Number.parseInt(idx)
-
-    // TODO 暂时只支持 顺序 上传
-    if (Number.isNaN(_idx)) {
-      return res.status(400).json({
-        uuid, err: 'invalid idx'
-      })
-    }
-
-    if (_idx > meta.total || _idx < 0) {
-      return res.status(400).json({
-        uuid, err: 'idx out-range'
-      })
-    }
-
-    if (_idx !== meta.cur) {
-      res.status(400)
-      if (_idx < meta.cur) {
-        return res.json({ uuid, err: 'duplicated' })
-      } else {
-        return res.json({ uuid, err: 'inaccessible' })
-      }
-    }
 
     if (meta.done) {
       return res.json({ uuid, status: 'done' })
@@ -163,20 +187,21 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
           next(null, chunk)
         })
 
-        const ws = fs.createWriteStream(`${_chunksFolder}/${uuid}-${meta.cur}`)
+        const chunkId = meta.serial ? meta.cur : Number.parseInt(idx)
+        const ws = fs.createWriteStream(`${_chunksFolder}/${uuid}-${chunkId}`)
 
         rs.pipe(ws)
           .on('error', err => {
             if (err) return res.status(500).json({ uuid, err })
           })
-          .on('finish', () => updateChunkMeta(meta))
+          .on('finish', () => updateChunkMeta())
       } else {
-        updateChunkMeta(meta)
+        updateChunkMeta()
       }
 
     }
 
-    function updateChunkMeta (meta: ChunkMeta) {
+    function updateChunkMeta () {
       let response = {}
 
       meta.cur++
@@ -185,8 +210,10 @@ export default function routerFactory (options?: DnuRouterOptions & RouterOption
         meta.done = true
         response = { uuid, status: 'done' }
       } else {
+        const target = meta.serial ? `${req.baseUrl}/upload/${uuid}/${meta.cur}` : undefined
+
         res.status(202)
-        response = { uuid, status: 'pending', target: `${req.baseUrl}/upload/${uuid}/${meta.cur}` }
+        response = { uuid, status: 'pending', target }
       }
 
       return Promise.resolve(_store.set(uuid, meta)).then(() => {
