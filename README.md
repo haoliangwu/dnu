@@ -1,7 +1,7 @@
 ## Dnu
-Simple multipart ``d``ownloading a``n``d ``u``ploading suites in nodejs. 
+Simple multipart **d**ownloading a**n**d **u**ploading suites in nodejs. 
 
-> Just for learning purpose. Dont use it in production environment altought it contains several unit-test cases.
+> Just for learning purpose. Dont use it in production environment although it contains several unit-test cases.
 
 ## Todos
 * [x] middlewares
